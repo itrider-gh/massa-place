@@ -47,7 +47,7 @@ const deployerAccount = await WalletClient.getAccountFromSecretKey(secretKey);
     [
       {
         data: readFileSync(path.join(__dirname, 'build', 'main.wasm')), // smart contract bytecode
-        coins: fromMAS(10), // coins for deployment
+        coins: fromMAS(1), // coins for deployment
         args: new Args().addString('Test'), // arguments for deployment
       } as ISCData,
       // Additional smart contracts can be added here for deployment

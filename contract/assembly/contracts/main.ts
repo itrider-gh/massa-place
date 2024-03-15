@@ -1,52 +1,72 @@
-import { Storage, Context, generateEvent } from '@massalabs/massa-as-sdk';
+import { Storage, Context, generateEvent, Utilities, remainingGas } from '@massalabs/massa-as-sdk';
 import { Args, stringToBytes } from '@massalabs/as-types';
 
-/**
- * Initializes the canvas with a default color for each pixel.
- * This function is called only once upon the deployment of the contract to prepare the canvas.
- *
- * @param _ - The arguments to the constructor, not used here.
- */
 export function constructor(_: StaticArray<u8>): void {
-  // This check is important. It ensures that this function can only be called at the time of deployment.
   if (!Context.isDeployingContract()) {
     return;
   }
-  
-  const defaultColor = "FFFFFF"; // Default color in hexadecimal (white, for example)
+
   for (let x = 0; x < 10; x++) {
     for (let y = 0; y < 10; y++) {
       let key = `${x},${y}`;
-      Storage.set(key, defaultColor);
+      let hash = Utilities.keccak256(stringToBytes(key));
+      let color = hashToHexColor(hash); // Utilisez une fonction ajustée
+      Storage.set(key, color);
     }
   }
 }
 
-/**
- * Retrieves the color of a pixel specified by its coordinates (x, y).
- *
- * @param _args - The serialized x and y coordinates of the pixel.
- * @returns The hexadecimal color of the pixel.
- */
 export function getPixelColor(_args: StaticArray<u8>): StaticArray<u8> {
   let args = new Args(_args);
-  
-  // Extracting x and y coordinates from the serialized arguments
   let x = args.nextU32().expect('Missing x coordinate.');
   let y = args.nextU32().expect('Missing y coordinate.');
-  
+
   let key = `${x},${y}`;
-  
-  // Checking for the existence of the color for the specified pixel
   if (!Storage.has(key)) {
     generateEvent("No color found for pixel at " + key);
     return stringToBytes("No color found");
   }
-  
-  // Retrieving the stored color
+
   let color = Storage.get(key);
-  
   generateEvent("Color for pixel at " + key + " is " + color);
-  // Returning the color as a serialized response
   return stringToBytes(color);
+}
+
+// Fonction ajustée pour convertir un hash en couleur hexadécimale
+function hashToHexColor(hash: StaticArray<u8>): string {
+  // Prenez directement les valeurs nécessaires sans utiliser `slice`
+  return hash.reduce<string>((prev, curr, index) => {
+    if (index < 3) { // Limitez à 3 octets pour une couleur RGB
+      return prev + curr.toString(16).padStart(2, '0');
+    }
+    return prev;
+  }, "");
+}
+
+export function getAllPixelColors(_: StaticArray<u8>): StaticArray<u8> {
+  let allColors = "";
+  const delimiter = ";"; // Délimiteur pour séparer les couleurs dans la chaîne retournée
+
+  for (let x = 0; x < 10; x++) {
+    for (let y = 0; y < 10; y++) {
+      let key = `${x},${y}`;
+      if (Storage.has(key)) {
+        let color = Storage.get(key);
+        allColors += color + delimiter;
+      } else {
+        // Si aucune couleur n'est trouvée pour un pixel, ajoutez une valeur par défaut ou un indicateur
+        allColors += "FFFFFF" + delimiter; // Couleur blanche comme valeur par défaut
+      }
+    }
+  }
+
+  // Ajouter le gas restant à la fin de la chaîne de caractères
+  let remainingGasStr = remainingGas().toString();
+  allColors += "remainingGas:" + remainingGasStr;
+
+  // Générer un événement pour le débogage ou le suivi
+  generateEvent("Retrieved all pixel colors with remaining gas");
+
+  // Renvoyer toutes les couleurs concaténées sous forme d'une chaîne avec le gas restant
+  return stringToBytes(allColors);
 }
