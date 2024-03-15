@@ -36,3 +36,15 @@
     transform: rotate(360deg);
   }
 }
+
+/* Dans App.css */
+.canvas {
+  display: grid;
+  grid-template-columns: repeat(10, 20px); /* Crée un canevas de 10x10 */
+  grid-gap: 1px;
+}
+
+.pixel {
+  width: 20px;
+  height: 20px;
+}
