@@ -5,7 +5,6 @@ export function constructor(_: StaticArray<u8>): void {
   if (!Context.isDeployingContract()) {
     return;
   }
-
   for (let x = 0; x < 10; x++) {
     for (let y = 0; y < 10; y++) {
       let key = `${x},${y}`;
@@ -14,6 +13,34 @@ export function constructor(_: StaticArray<u8>): void {
       Storage.set(key, color);
     }
   }
+}
+
+/**
+ * Change la couleur d'un pixel spécifié par ses coordonnées (x, y).
+ *
+ * @param _args - Les coordonnées x et y du pixel et la nouvelle couleur, sérialisées.
+ */
+export function changePixelColor(_args: StaticArray<u8>): void {
+  let args = new Args(_args);
+  
+  // Extraire les coordonnées x et y, ainsi que la nouvelle couleur des arguments
+  let x = args.nextU32().expect('Missing x coordinate.');
+  let y = args.nextU32().expect('Missing y coordinate.');
+  let newColor = args.nextString().expect('Missing new color.');
+
+  let key = `${x},${y}`;
+
+  // Vérifier si le pixel existe
+  if (!Storage.has(key)) {
+    generateEvent(`Pixel at ${key} not found.`);
+    return;
+  }
+
+  // Mettre à jour la couleur du pixel
+  Storage.set(key, newColor);
+
+  // Générer un événement pour notifier que la couleur du pixel a été changée
+  generateEvent(`Color of pixel at ${key} changed to ${newColor}.`);
 }
 
 export function getPixelColor(_args: StaticArray<u8>): StaticArray<u8> {
