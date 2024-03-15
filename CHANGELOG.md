@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.2] - 2024-03-15
+
+### Added
+- Ownership functionality for pixels.
+- Initial pixels are set to null color and owned by 'itrider'.
+
+### Removed
+- `hashToHexColor` function from the contract.
+
+### Changed
+- Modified get methods to comply with the new pixel structure.
+- Added error throwing in smart contract to cancel transactions in case of errors.
+
 ## [v0.1.1] - 2024-03-15
 
 ### Added
