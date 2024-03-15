@@ -10,11 +10,32 @@ import {
   fromMAS,
 } from "@massalabs/massa-web3";
 
-const CONTRACT_ADDRESS = "AS12QXyw7BDeLepnAVwoupf2xzrkYwv5cnVKasikvo2LncU8UAiLA";
+const CONTRACT_ADDRESS = "AS123gukmwDvR2yUDDvmfjuADBohbqFD1CW1k53yGFjW9UeQWsao4";
 
 function App() {
   const [client, setWeb3client] = useState<Client | null>(null);
-  const [pixels, setPixels] = useState<Array<string>>(Array(100).fill("#FFFFFF"));
+  const [pixels, setPixels] = useState<Array<{color: string, owner: string}>>(Array(100).fill({ color: "#FFFFFF", owner: "" }));
+
+
+  useEffect(() => {
+    const initClientWithBearby = async () => {
+      const MassaStationProvider = (await providers(true)).find(p => p.name() === "MASSASTATION");
+      if (!MassaStationProvider) {
+        console.error("MassaStation provider not found");
+        return;
+      }
+      const accounts = await MassaStationProvider.accounts();
+      if (accounts.length === 0) {
+        console.error("No accounts found with MassaStation provider");
+        return;
+      }
+      const client = await ClientFactory.fromWalletProvider(MassaStationProvider, accounts[0], false);
+      setWeb3client(client);
+    };
+
+    initClientWithBearby().catch(console.error);
+  }, []);
+
 
   // Génère un entier aléatoire entre min (inclus) et max (exclus)
   function getRandomInt(min: number, max: number): number {
@@ -46,41 +67,24 @@ function App() {
         functionName: "changePixelColor",
         parameter: args,
         maxGas: BigInt(3980167295),
-        coins: BigInt(0),
+        coins: BigInt(fromMAS(10)),
         fee: BigInt(fromMAS(0.1)),
       });
       console.log(`Changed pixel at (${x}, ${y}) to #${color}`);
-      // Rafraîchir les couleurs des pixels après le changement
-      fetchCanvasColors();
+      // Attendre 5 secondes avant de rafraîchir les couleurs des pixels
+      setTimeout(fetchCanvasColors, 10000);
     } catch (error) {
       console.error(error);
     }
-  }
+}
 
-  useEffect(() => {
-    const initClientWithBearby = async () => {
-      const MassaStationProvider = (await providers(true)).find(p => p.name() === "MASSASTATION");
-      if (!MassaStationProvider) {
-        console.error("MassaStation provider not found");
-        return;
-      }
-      const accounts = await MassaStationProvider.accounts();
-      if (accounts.length === 0) {
-        console.error("No accounts found with MassaStation provider");
-        return;
-      }
-      const client = await ClientFactory.fromWalletProvider(MassaStationProvider, accounts[1], false);
-      setWeb3client(client);
-    };
-
-    initClientWithBearby().catch(console.error);
-  }, []);
 
   useEffect(() => {
     fetchCanvasColors();
   }, [client]);
 
   const fetchCanvasColors = async () => {
+    // Votre logique existante avec des ajustements pour parser les propriétaires
     if (!client) return;
 
     try {
@@ -91,15 +95,16 @@ function App() {
         maxGas: BigInt(3980167295),
       });
       const fullStr = bytesToStr(res.returnValue);
-      const gasInfoIndex = fullStr.indexOf("remainingGas:");
-      const colorsStr = fullStr.substring(0, gasInfoIndex);
-      const remainingGasStr = fullStr.substring(gasInfoIndex).replace("remainingGas:", "");
-      const colorsArray = colorsStr.split(';').filter(c => c);
+      // Extraction et ajustement pour gérer le format couleur,propriétaire
+      const [colorsAndOwnersStr, remainingGas] = fullStr.split("|remainingGas:");
+      const pixelsData = colorsAndOwnersStr.split(";").map(entry => {
+        const [color, owner] = entry.split(",");
+        return { color: `#${color}`, owner };
+      });
 
-      console.log(`Remaining gas: ${remainingGasStr}`);
-      if (colorsArray.length === 100) {
-        setPixels(colorsArray.map(color => `#${color}`));
-      }
+      console.log(`Remaining gas: ${remainingGas}`);
+      setPixels(pixelsData);
+
     } catch (error) {
       console.error(error);
     }
@@ -110,8 +115,8 @@ function App() {
       <h1>Canvas Colors</h1>
       <button onClick={changeRandomPixelColor}>Change Random Pixel Color</button>
       <div className="canvas">
-        {pixels.map((color, index) => (
-          <div key={index} className="pixel" style={{ backgroundColor: color }}></div>
+        {pixels.map((pixel, index) => (
+          <div key={index} className="pixel" style={{ backgroundColor: pixel.color }} title={`Owner: ${pixel.owner}`}></div>
         ))}
       </div>
     </div>
