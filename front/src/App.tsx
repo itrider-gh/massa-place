@@ -10,15 +10,18 @@ import {
   fromMAS,
 } from "@massalabs/massa-web3";
 
-const CONTRACT_ADDRESS = "AS123gukmwDvR2yUDDvmfjuADBohbqFD1CW1k53yGFjW9UeQWsao4";
+const CONTRACT_ADDRESS = "AS12mKEUunrCvBHDoWBeQUSoHPrcooAuLhKsXivVUf592Aw2QN8rQ";
 
 function App() {
   const [client, setWeb3client] = useState<Client | null>(null);
-  const [pixels, setPixels] = useState<Array<{color: string, owner: string}>>(Array(100).fill({ color: "#FFFFFF", owner: "" }));
-
+  // Modification pour inclure la position des pixels
+  const [pixels, setPixels] = useState<Array<{ x: number; y: number; color: string; owner: string; price: number }>>([]);
+  const [selectedPixel, setSelectedPixel] = useState<{ x: number; y: number; color: string; owner: string; price: number } | null>(null);
+  const [newPrice, setNewPrice] = useState(0);
+  const [newColor, setNewColor] = useState('#000000'); // Initial state for new color
 
   useEffect(() => {
-    const initClientWithBearby = async () => {
+    const initClient = async () => {
       const MassaStationProvider = (await providers(true)).find(p => p.name() === "MASSASTATION");
       if (!MassaStationProvider) {
         console.error("MassaStation provider not found");
@@ -29,96 +32,147 @@ function App() {
         console.error("No accounts found with MassaStation provider");
         return;
       }
-      const client = await ClientFactory.fromWalletProvider(MassaStationProvider, accounts[0], false);
+      const client = await ClientFactory.fromWalletProvider(MassaStationProvider, accounts[1], false);
       setWeb3client(client);
     };
 
-    initClientWithBearby().catch(console.error);
+    initClient().catch(console.error);
   }, []);
 
-
-  // Génère un entier aléatoire entre min (inclus) et max (exclus)
-  function getRandomInt(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min) + min);
-  }
-
-
-  // Génère une couleur hexadécimale aléatoire
-  function getRandomColor() {
-    const letters = '0123456789ABCDEF';
-    let color = '';
-    for (let i = 0; i < 6; i++) {
-      color += letters[getRandomInt(0, 16)];
-    }
-    return color;
-  }
-
-  async function changeRandomPixelColor() {
-    if (!client) return;
-
-    const x = getRandomInt(0, 10); // Coordonnée x aléatoire entre 0 et 9
-    const y = getRandomInt(0, 10); // Coordonnée y aléatoire entre 0 et 9
-    const color = getRandomColor(); // Couleur aléatoire
-
-    try {
-      const args = new Args().addU32(x).addU32(y).addString(color).serialize();
-      await client.smartContracts().callSmartContract({
-        targetAddress: CONTRACT_ADDRESS,
-        functionName: "changePixelColor",
-        parameter: args,
-        maxGas: BigInt(3980167295),
-        coins: BigInt(fromMAS(10)),
-        fee: BigInt(fromMAS(0.1)),
-      });
-      console.log(`Changed pixel at (${x}, ${y}) to #${color}`);
-      // Attendre 5 secondes avant de rafraîchir les couleurs des pixels
-      setTimeout(fetchCanvasColors, 10000);
-    } catch (error) {
-      console.error(error);
-    }
-}
-
-
-  useEffect(() => {
-    fetchCanvasColors();
-  }, [client]);
-
   const fetchCanvasColors = async () => {
-    // Votre logique existante avec des ajustements pour parser les propriétaires
     if (!client) return;
 
     try {
       const res = await client.smartContracts().readSmartContract({
         targetAddress: CONTRACT_ADDRESS,
-        targetFunction: "getAllPixelColors",
+        targetFunction: "getAllPixelsDetails",
         parameter: new Args().serialize(),
         maxGas: BigInt(3980167295),
       });
       const fullStr = bytesToStr(res.returnValue);
-      // Extraction et ajustement pour gérer le format couleur,propriétaire
-      const [colorsAndOwnersStr, remainingGas] = fullStr.split("|remainingGas:");
-      const pixelsData = colorsAndOwnersStr.split(";").map(entry => {
-        const [color, owner] = entry.split(",");
-        return { color: `#${color}`, owner };
+      const [pixelsDetailsStr] = fullStr.split("|remainingGas:");
+      const pixelsData = pixelsDetailsStr.split("|").map(entry => {
+        const [x, y, color, owner, price] = entry.split(",");
+        return {
+          x: parseInt(x, 10),
+          y: parseInt(y, 10),
+          color: `#${color}`,
+          owner,
+          price: parseFloat(price),
+        };
       });
 
-      console.log(`Remaining gas: ${remainingGas}`);
       setPixels(pixelsData);
-
+      console.log("done");
     } catch (error) {
       console.error(error);
     }
   };
 
+  useEffect(() => {
+    fetchCanvasColors();
+  }, [client]);
+
+  async function buyPixel(x: number, y: number, price: number) {
+    if (!client) return;
+
+    try {
+      const args = new Args().addU32(x).addU32(y).serialize();
+      await client.smartContracts().callSmartContract({
+        targetAddress: CONTRACT_ADDRESS,
+        functionName: "buyPixel",
+        parameter: args,
+        maxGas: BigInt(3980167295),
+        coins: BigInt(fromMAS(price)),
+        fee: BigInt(fromMAS(0.1)),
+      });
+      console.log(`Attempted to buy pixel at (${x}, ${y})`);
+      setTimeout(fetchCanvasColors, 8000); // Refresh pixel data
+    } catch (error) {
+      console.error("Error buying pixel:", error);
+    }
+  }
+
+  const updatePixelPrice = async (x: number, y: number, price: number) => {
+    if (!client) return;
+    
+    try {
+      const args = new Args().addU32(x).addU32(y).addString(price.toString()).serialize();
+      await client.smartContracts().callSmartContract({
+        targetAddress: CONTRACT_ADDRESS,
+        functionName: "setPixelPrice",
+        parameter: args,
+        maxGas: BigInt(3980167295),
+        coins: BigInt(0), // Pas besoin d'envoyer des coins pour cette opération
+        fee: BigInt(fromMAS(0.1)), // Assurez-vous d'avoir suffisamment pour couvrir les frais
+      });
+      console.log(`Price updated for pixel at (${x}, ${y}) to ${price} MAS`);
+      setTimeout(fetchCanvasColors, 8000); // Rafraîchissement des données
+    } catch (error) {
+      console.error("Error updating pixel price:", error);
+    }
+  };
+
+  async function changePixelColor(x: number, y: number, color: string) {
+    if (!client) return;
+  
+    // Convert color from #RRGGBB to RRGGBB format expected by smart contract
+    const colorWithoutHash = color.slice(1);
+  
+    try {
+      const args = new Args().addU32(x).addU32(y).addString(colorWithoutHash).serialize();
+      await client.smartContracts().callSmartContract({
+        targetAddress: CONTRACT_ADDRESS,
+        functionName: "changePixelColor",
+        parameter: args,
+        maxGas: BigInt(3980167295),
+        coins: BigInt(0), // Assuming no MAS is required to change color; adjust if needed
+        fee: BigInt(fromMAS(0.1)),
+      });
+      console.log(`Changed color of pixel at (${x}, ${y}) to ${color}`);
+      setTimeout(fetchCanvasColors, 8000); // Refresh pixels data
+    } catch (error) {
+      console.error("Error changing pixel color:", error);
+    }
+  }
+
   return (
     <div className="App">
-      <h1>Canvas Colors</h1>
-      <button onClick={changeRandomPixelColor}>Change Random Pixel Color</button>
+      <h1>Massa Place</h1>
       <div className="canvas">
         {pixels.map((pixel, index) => (
-          <div key={index} className="pixel" style={{ backgroundColor: pixel.color }} title={`Owner: ${pixel.owner}`}></div>
+          <div
+            key={`${pixel.x}-${pixel.y}`}
+            className="pixel"
+            style={{ backgroundColor: pixel.color }}
+            title={`Owner: ${pixel.owner} | Price: ${pixel.price} MAS`}
+            onClick={() => setSelectedPixel(pixel)}
+          ></div>
         ))}
       </div>
+      {selectedPixel && (
+        <div>
+          <p>Selected Pixel: {selectedPixel.x}, {selectedPixel.y}</p>
+          <p>Color: {selectedPixel.color}</p>
+          <p>Owner: {selectedPixel.owner}</p>
+          <p>Price: {selectedPixel.price} MAS</p>
+          <button onClick={() => buyPixel(selectedPixel.x, selectedPixel.y, selectedPixel.price)}>Buy Pixel</button>
+          <input
+            type="text"
+            value={newPrice}
+            onChange={(e) => setNewPrice(Number(e.target.value))}
+            placeholder="New Price (MAS)"
+          />
+          <button onClick={() => updatePixelPrice(selectedPixel.x, selectedPixel.y, newPrice)}>Set New Price</button>
+          {/* New color input and button to change color */}
+          <input
+            type="color"
+            value={newColor} // This state needs to be defined and managed similarly to newPrice
+            onChange={(e) => setNewColor(e.target.value)}
+          />
+          <button onClick={() => changePixelColor(selectedPixel.x, selectedPixel.y, newColor)}>Change Color</button>
+        </div>
+      )}
     </div>
   );
 }

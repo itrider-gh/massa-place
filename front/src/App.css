@@ -1,5 +1,10 @@
 .App {
   text-align: center;
+  display: flex;
+  flex-direction: column; /* Organise les éléments enfants verticalement */
+  justify-content: center; /* Centre les éléments verticalement */
+  align-items: center; /* Centre les éléments horizontalement */
+  height: 100vh; /* Prend toute la hauteur de la fenêtre de visualisation */
 }
 
 .App-logo {
@@ -37,14 +42,16 @@
   }
 }
 
-/* Dans App.css */
 .canvas {
   display: grid;
   grid-template-columns: repeat(10, 20px); /* Crée un canevas de 10x10 */
-  grid-gap: 1px;
+  gap: 2px; /* Espacement entre les pixels */
+  background-color: #ccc; /* Couleur de fond pour les espaces */
+  padding: 1px; /* Ajoute un peu d'espace autour du canevas */
 }
 
 .pixel {
   width: 20px;
   height: 20px;
+  border: 1px solid #ccc; /* Optionnel: Ajoute une fine bordure à chaque pixel */
 }
