@@ -43,7 +43,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - First version with small canvas, fetching their colors in the SC datastore.
-
----
-
-Make sure to replace `[date]` with the actual date you intend to release version v0.1.3.
