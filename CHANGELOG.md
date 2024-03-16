@@ -49,7 +49,3 @@ The front end enables the use of every smart contract function (except for the g
 
 ### Added
 - First version with small canvas, fetching their colors in the SC datastore.
-
----
-
-Make sure to replace `[date]` with the actual date you intend to release version v0.1.3.
