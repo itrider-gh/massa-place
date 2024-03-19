@@ -1,4 +1,4 @@
-import { Storage, Context, generateEvent, Address, remainingGas, publicKeyToAddress, transferredCoins } from '@massalabs/massa-as-sdk';
+import { Storage, Context, generateEvent, Address, remainingGas, publicKeyToAddress, transferredCoins, createEvent, timestamp } from '@massalabs/massa-as-sdk';
 import { Args, stringToBytes } from '@massalabs/as-types';
 
 export function constructor(_: StaticArray<u8>): void {
@@ -25,139 +25,134 @@ export function constructor(_: StaticArray<u8>): void {
  */
 
 
-//Setter
-export function changePixelColor(_args: StaticArray<u8>): void {
-  if (_args.length < 3) {
-    throw new Error("Missing arguments for changePixelColor function.");
+// Modification de la fonction pour changer le prix de plusieurs pixels
+export function setMultiplePixelsPrice(_args: StaticArray<u8>): void {
+  if (_args.length < 4) {
+    throw new Error("Missing arguments for setMultiplePixelsPrice function.");
   }
+
+  generateEvent(createEvent("test", ["done"]));
+
 
   let args = new Args(_args);
-  let x = args.nextU32().expect('Missing x coordinate.');
-  let y = args.nextU32().expect('Missing y coordinate.');
-  let newColor = args.nextString().expect('Missing new color.');
+  let numberOfPixelsToChangePrice = parseFloat(args.nextString().expect('Missing number of pixels to change price.'));
+  let successfulPriceChanges: string[] = [];
+  let failedPriceChanges: string[] = [];
 
-  let key = `${x},${y}`;
+  for (let i = 0; i < numberOfPixelsToChangePrice; i++) {
+    let x = args.nextU32().expect('Missing x coordinate.');
+    let y = args.nextU32().expect('Missing y coordinate.');
+    let newPrice = args.nextString().expect('Missing new price.');
 
-  if (!Storage.has(key)) {
-    throw new Error(`Pixel at ${key} not found.`);
+    let key = `${x},${y}`;
+
+    if (!Storage.has(key)) {
+      failedPriceChanges.push(`Pixel at ${key} not found.`);
+      continue;
+    }
+
+    let value = Storage.get(key);
+    let parts = value.split(":");
+    if (parts.length < 3) {
+      failedPriceChanges.push(`Pixel data at ${key} is corrupted or missing information.`);
+      continue;
+    }
+
+    let currentColor = parts[0];
+    let currentOwner = parts[1];
+
+    let callerAddress = Context.caller().toString();
+    if (callerAddress !== currentOwner) {
+      failedPriceChanges.push(`Unauthorized: Caller ${callerAddress} is not the owner of pixel at ${key}.`);
+      continue;
+    }
+
+    // Update pixel data with the new price while maintaining color and owner
+    Storage.set(key, `${currentColor}:${currentOwner}:${newPrice}`);
+    successfulPriceChanges.push(`Price of pixel at ${key} changed to ${newPrice} by owner ${currentOwner}.`);
   }
 
-  let value = Storage.get(key);
-  let parts = value.split(":");
-  if (parts.length < 3) {
-    throw new Error("Pixel data is corrupted or missing information.");
-  }
-
-  let currentColor = parts[0];
-  let currentOwner = parts[1];
-  let price = parts[2]; // Maintaining the price as is, or it could be updated if necessary.
-
-  let callerAddress = Context.caller().toString();
-  if (callerAddress !== currentOwner && currentOwner !== "not_yet_owned") {
-    throw new Error(`Unauthorized: Caller ${callerAddress} is not the owner of pixel at ${key}.`);
-  }
-  
-  Storage.set(key, `${newColor}:${currentOwner}:${price}`);
-  generateEvent(`Color of pixel at ${key} changed to ${newColor}. Owner remains ${currentOwner}.`);
+  // Generate events for both successful and failed price changes
+  successfulPriceChanges.forEach(change => generateEvent(createEvent("test", [change])));
+  failedPriceChanges.forEach(change => generateEvent(createEvent("test", [change])));
 }
 
-export function buyPixel(_args: StaticArray<u8>): void {
-  if (_args.length < 2) {
-    throw new Error("Missing arguments for buyPixel function.");
-  }
-
+export function buyPixels(_args: StaticArray<u8>): void {
   let args = new Args(_args);
-  let x = args.nextU32().expect('Missing x coordinate.');
-  let y = args.nextU32().expect('Missing y coordinate.');
+  let numberOfPixelsToBuy = parseFloat(args.nextString().expect('Missing number of pixels to buy.'));
+  let totalTransferredAmount = transferredCoins(); // Assurez-vous que cette conversion est correcte pour votre cas
+  let totalProposedPrice: u64 = 0; // Somme des prix proposés
+  let successfulPurchases: string[] = [];
+  let failedPurchases: string[] = [];
+  let refundAmount: u64 = 0;
 
-  let key = `${x},${y}`;
-
-  if (!Storage.has(key)) {
-    throw new Error(`Pixel at ${key} not found.`);
+  // Calculez d'abord la somme des prix proposés pour tous les pixels
+  for (let i = 0; i < numberOfPixelsToBuy; i++) {
+    args.nextU32();
+    args.nextU32();
+    let proposedPrice = parseFloat(args.nextString().expect('Missing proposed price.'));
+    generateEvent(createEvent("test",["ProposedPrice",proposedPrice.toString()]));
+    totalProposedPrice += u64(proposedPrice);
   }
 
-  let value = Storage.get(key);
-  let parts = value.split(":");
-  if (parts.length < 3) {
-    throw new Error("Pixel data is corrupted or missing information.");
+  generateEvent(createEvent("test",["NumberOfPixels",numberOfPixelsToBuy.toString()]));
+
+  generateEvent(createEvent("test",["TotalProposedPrice",(totalProposedPrice).toString()]));
+
+  generateEvent(createEvent("test",["transferAmount",(totalTransferredAmount).toString()]));
+
+  // Réinitialisez args pour relire les données depuis le début
+  args = new Args(_args);
+  args.nextString(); // Ignorez le premier U32 qui est le nombre de pixels à acheter
+
+  // Vérifiez si le montant total transféré couvre la somme des prix proposés
+  if (totalTransferredAmount < totalProposedPrice) {
+    throw new Error(`Not enough coins transferred: required ${totalProposedPrice}, but got ${totalTransferredAmount}.`);
   }
 
-  let currentColor = parts[0];
-  let currentOwner = parts[1];
-  let price = parts[2];
 
-  if (price === "not_for_sale") {
-    throw new Error(`Pixel at ${key} is not for sale.`);
+  for (let i = 0; i < numberOfPixelsToBuy; i++) {
+    let x = args.nextU32().expect('Missing x coordinate.');
+    let y = args.nextU32().expect('Missing y coordinate.');
+    let proposedPrice = u64(parseFloat(args.nextString().expect('Missing proposed price.'))); // Supposons que le prix proposé est un F64
+
+    let key = `${x},${y}`;
+
+    if (!Storage.has(key)) {
+      failedPurchases.push(`Pixel at ${key} not found.`);
+      refundAmount += proposedPrice; // Ajouter au montant de remboursement
+      continue;
+    }
+
+    let value = Storage.get(key);
+    let parts = value.split(":");
+    if (parts.length < 3 || parts[2] === "not_for_sale" || u64(parseFloat(parts[2])) != proposedPrice) {
+      failedPurchases.push(`Pixel at ${key} cannot be bought for the proposed price: ${proposedPrice.toString()}.`);
+      refundAmount += proposedPrice; // Ajouter au montant de remboursement
+      continue;
+    }
+
+    let buyerAddress = Context.caller().toString();
+    Storage.set(key, "000000" + ":" + buyerAddress + ":not_for_sale"); // Mise à jour avec le nouveau propriétaire et marqué comme non disponible à la vente
+    successfulPurchases.push(`Pixel at ${key} successfully bought for ${proposedPrice.toString()}.`);
   }
 
-  let priceAsNumber = u64(parseFloat(price));
-  let transferredAmount = transferredCoins();
-
-  if (transferredAmount < priceAsNumber) {
-    throw new Error(`Not enough coins transferred: required ${price}, but got ${transferredAmount}.`);
+  // Générez des événements pour les achats réussis et échoués
+  // Pour les achats réussis
+  for (let i = 0; i < successfulPurchases.length; i++) {
+    generateEvent(createEvent('test', ['success', successfulPurchases[i]]));
   }
 
-  let buyerAddress = Context.caller().toString();
-
-  let newColor = (currentOwner === "not_yet_owned") ? "000000" : currentColor;
-  Storage.set(key, `${newColor}:${buyerAddress}:not_for_sale`);
-  generateEvent(`Pixel at ${key} now owned by ${buyerAddress} with new color ${newColor}. No longer for sale.`);
-}
-
-
-export function setPixelPrice(_args: StaticArray<u8>): void {
-  if (_args.length < 3) {
-    throw new Error("Missing arguments for setPixelPrice function.");
+  // Pour les achats échoués
+  for (let i = 0; i < failedPurchases.length; i++) {
+    generateEvent(createEvent('test', ['error', failedPurchases[i]]));
   }
 
-  let args = new Args(_args);
-  let x = args.nextU32().expect('Missing x coordinate.');
-  let y = args.nextU32().expect('Missing y coordinate.');
-  let newPrice = args.nextString().expect('Missing new price.');
-
-  let key = `${x},${y}`;
-
-  if (!Storage.has(key)) {
-    throw new Error(`Pixel at ${key} not found.`);
+  // Simulez le remboursement si nécessaire
+  if (refundAmount > 0) {
+    generateEvent(createEvent('test', ["Refund needed:", refundAmount.toString()]));
+    // La logique de remboursement réelle dépendrait de votre environnement blockchain spécifique
   }
-
-  let value = Storage.get(key);
-  let parts = value.split(":");
-  if (parts.length < 3) {
-    throw new Error("Pixel data is corrupted or missing information.");
-  }
-
-  let currentColor = parts[0];
-  let currentOwner = parts[1];
-
-  let callerAddress = Context.caller().toString();
-  if (callerAddress !== currentOwner) {
-    throw new Error(`Unauthorized: Caller ${callerAddress} is not the owner of pixel at ${key}.`);
-  }
-
-  Storage.set(key, `${currentColor}:${currentOwner}:${newPrice}`);
-  generateEvent(`Price of pixel at ${key} changed to ${newPrice} by owner ${currentOwner}.`);
-}
-
-
-// Getter
-export function getPixelColor(_args: StaticArray<u8>): StaticArray<u8> {
-  let args = new Args(_args);
-  let x = args.nextU32().expect('Missing x coordinate.');
-  let y = args.nextU32().expect('Missing y coordinate.');
-
-  let key = `${x},${y}`;
-  if (!Storage.has(key)) {
-    generateEvent("No pixel found at " + key);
-    return stringToBytes("No pixel found");
-  }
-
-  let value = Storage.get(key);
-  let parts = value.split(":"); // Séparation de la chaîne sans déstructuration
-  let color = parts[0];
-  let owner = parts.length > 1 ? parts[1] : ""; // Gestion sécurisée de l'adresse du propriétaire
-  generateEvent(`Color of pixel at ${key} is ${color} with owner ${owner}`);
-  return stringToBytes(value); // Retour de "couleur:adresse"
 }
 
 // Function to retrieve all pixels' detailed information as a string
@@ -183,5 +178,6 @@ export function getAllPixelsDetails(_: StaticArray<u8>): StaticArray<u8> {
     }
   }
   // Convert the final string to a StaticArray<u8> for return
+  generateEvent("Pixels sended");
   return stringToBytes(allPixelsDetails);
 }

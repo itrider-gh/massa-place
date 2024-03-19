@@ -55,3 +55,8 @@
   height: 20px;
   border: 1px solid #ccc; /* Optionnel: Ajoute une fine bordure à chaque pixel */
 }
+
+/* Classe ajoutée pour les pixels sélectionnés */
+.selected {
+  border: 2px solid red; /* Bordure plus épaisse et rouge pour les pixels sélectionnés */
+}
