@@ -24,7 +24,7 @@ const secretKey = getEnvVariable('WALLET_SECRET_KEY');
 // Define deployment parameters
 const chainId = CHAIN_ID.BuildNet; // Choose the chain ID corresponding to the network you want to deploy to
 const maxGas = MAX_GAS_DEPLOYMENT; // Gas for deployment Default is the maximum gas allowed for deployment
-const fees = BigInt(fromMAS(1)); // Fees to be paid for deployment. Default is 0
+const fees = BigInt(fromMAS(5)); // Fees to be paid for deployment. Default is 0
 const waitFirstEvent = true;
 
 // Create an account using the private keyc
@@ -47,7 +47,7 @@ const deployerAccount = await WalletClient.getAccountFromSecretKey(secretKey);
     [
       {
         data: readFileSync(path.join(__dirname, 'build', 'main.wasm')), // smart contract bytecode
-        coins: fromMAS(1), // coins for deployment
+        coins: BigInt(fromMAS(40)), // coins for deployment
         args: new Args().addString('Test'), // arguments for deployment
       } as ISCData,
       // Additional smart contracts can be added here for deployment

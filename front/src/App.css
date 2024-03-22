@@ -1,62 +1,97 @@
 .App {
+  display: grid;
+  grid-template-rows: auto 1fr auto; /* Header, Content, Buttons */
+  height: 100vh;
   text-align: center;
+}
+
+.header {
+  padding: 10px;
+  background-color: #ffffff;
+  color: rgb(255, 0, 0);
   display: flex;
-  flex-direction: column; /* Organise les éléments enfants verticalement */
-  justify-content: center; /* Centre les éléments verticalement */
-  align-items: center; /* Centre les éléments horizontalement */
-  height: 100vh; /* Prend toute la hauteur de la fenêtre de visualisation */
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  justify-content: space-between; /* Répartit l'espace entre les éléments */
+}
+
+.left-header{
+  width: 33%;
+}
+
+.mid-header {
+  width: 33%;
+  display: flex; /* Active Flexbox pour ce sous-conteneur */
+  align-items: center; /* Centre les éléments enfants verticalement */
+  justify-content: center; /* Centre les éléments enfants horizontalement */
+}
+
+.right-header {
+  width: 33%;
+}
+
+/* Dans votre fichier CSS (par exemple App.css) */
+.connect-wallet-button {
+  padding: 10px 20px;
+  font-size: 16px;
   color: white;
+  background-color: #4CAF50; /* Couleur verte */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
-.App-link {
-  color: #61dafb;
+.connect-wallet-button:hover {
+  background-color: #45a049; /* Une teinte plus foncée de vert pour l'effet hover */
+  transform: scale(1.05); /* Légèrement plus grand au survol */
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.connect-wallet-button:active {
+  background-color: #3e8e41; /* Encore plus foncée pour l'effet actif */
+  transform: scale(0.95); /* Légèrement plus petit lors du clic */
+}
+
+.wallet-connected {
+  padding: 10px 20px;
+  font-size: 16px;
+  color: white;
+  background-color: #555555; /* Gris pour indiquer que le wallet est connecté */
+  border-radius: 5px;
+}
+
+
+h1 {
+  margin-left: 10px; /* Ajoute de l'espace entre le logo et le texte */
+}
+
+.canvas-container {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: start; /* Aligner le contenu au début du conteneur */
+  overflow: auto; /* Permettre le défilement si nécessaire */
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 0%, rgba(220, 220, 220, 1) 10%, rgba(220, 220, 220, 1) 100%);
 }
 
 .canvas {
   display: grid;
-  grid-template-columns: repeat(10, 20px); /* Crée un canevas de 10x10 */
-  gap: 2px; /* Espacement entre les pixels */
-  background-color: #ccc; /* Couleur de fond pour les espaces */
-  padding: 1px; /* Ajoute un peu d'espace autour du canevas */
+  grid-template-columns: repeat(100, 6px); /* Changez ici pour avoir 100 colonnes */
+  gap: 0px;
+  padding: 2px;
+  background-color: #ffffff;
+  border: 2px solid;
 }
 
 .pixel {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #ccc; /* Optionnel: Ajoute une fine bordure à chaque pixel */
+  width: 5px; /* Taille d'un pixel */
+  height: 5px; /* Taille d'un pixel */
+  border: 1px solid transparent;
 }
 
-/* Classe ajoutée pour les pixels sélectionnés */
-.selected {
-  border: 2px solid red; /* Bordure plus épaisse et rouge pour les pixels sélectionnés */
+.buttons-container {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+  justify-content: center;
 }
+
