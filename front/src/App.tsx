@@ -473,7 +473,11 @@ function App() {
       <div className="header">
         {/* Left header with GitHub logo/link */}
         <div className="left-header">
-          <a href=""><img src={GithubLogo} alt="Github Logo" width="30px" height="30px" /></a>
+          <a href="https://github.com/itrider-gh/massa-place">
+            <img src={GithubLogo} alt="Github Logo" width="30px" height="30px" />
+          </a>
+          <div>v0.10.1</div>
+          <div>buildnet</div>
         </div>
         {/* Mid header with application logo and title */}
         <div className="mid-header">
