@@ -8,7 +8,7 @@ interface PixelProps {
     y: number; // The y coordinate of the pixel
     color: string; // The color of the pixel
     owner: string; // The owner of the pixel
-    price: number; // The price of the pixel
+    price: bigint; // The price of the pixel
   };
   isSelected: boolean; // Flag indicating if the pixel is selected
   onClick: (e: React.MouseEvent<HTMLDivElement>, pixel: PixelProps['pixel']) => void; // Function to handle click events on the pixel
