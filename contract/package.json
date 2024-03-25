@@ -20,7 +20,7 @@
     "license": "ISC",
     "devDependencies": {
         "@as-pect/cli": "^8.1.0",
-        "@assemblyscript/loader": "^0.27.2",
+        "@assemblyscript/loader": "^0.27.22",
         "@massalabs/as-transformer": "^0.3.2",
         "@massalabs/as-types": "^2.0.0",
         "@massalabs/eslint-config": "^0.0.10",
@@ -30,23 +30,17 @@
         "@massalabs/massa-web3": "^3.0.2",
         "@massalabs/prettier-config-as": "^0.0.2",
         "@protobuf-ts/plugin": "^2.9.1",
-        "@types/node": "^18.11.10",
-        "assemblyscript": "^0.27.2",
+        "@types/node": "^20.10.3",
+        "@types/yargs": "^17.0.32",
+        "assemblyscript": "^0.27.22",
         "assemblyscript-prettier": "^1.0.7",
-        "dotenv": "^16.0.3",
-        "prettier": "^2.8.1",
-        "tslib": "^2.4.0",
+        "dotenv": "^16.3.1",
+        "prettier": "^3.1.0",
+        "ts-node": "^10.9.1",
+        "tslib": "^2.6.2",
         "tsx": "^4.7.0",
-        "typescript": "^4.8.4"
-    },
-    "overrides": {
-        "visitor-as": {
-            "assemblyscript": "$assemblyscript"
-        }
+        "typescript": "^5.3.2"
     },
     "type": "module",
-    "prettier": "@massalabs/prettier-config-as",
-    "engines": {
-        "node": ">=16"
-    }
+    "prettier": "@massalabs/prettier-config-as"
 }

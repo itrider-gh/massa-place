@@ -35,8 +35,8 @@ function App() {
   const [web3clients, setWeb3clients] = useState<ProviderAccounts[]>([]);
   const [client, setWeb3Client] = useState<Client | null>(null);
   const [defaultClient, setDefaultClient] = useState<Client | null>(null);
-  const [pixels, setPixels] = useState<Array<{ x: number; y: number; color: string; owner: string; price: number }>>([]);
-  const [newPrice, setNewPrice] = useState("");
+  const [pixels, setPixels] = useState<Array<{ x: number; y: number; color: string; owner: string; price: bigint }>>([]);
+  const [newPrice, setNewPrice] = useState(BigInt(0));
   const [newColor, setNewColor] = useState('#000000'); // Initial color state for new color 
   const [nodeStatusInfo, setNodeStatusInfo] = useState<INodeStatus | null>(null);
   const [isPollingStarted, setIsPollingStarted] = useState<boolean>(false);
@@ -47,7 +47,7 @@ function App() {
   type PixelSimple = {
     x: number;
     y: number;
-    price: number;
+    price: bigint;
     color: string;
   };
   
@@ -117,7 +117,7 @@ function App() {
             else if (eventData[0] === "Massa Place:changePrice") {
               const x = parseInt(eventData[1], 10);
               const y = parseInt(eventData[2], 10);
-              const newPrice = parseFloat(eventData[3]); // New price specified in the event
+              const newPrice = BigInt(eventData[3]); // New price specified in the event
             
               // Update the pixels state to reflect the new price
               setPixels((currentPixels) => currentPixels.map((pixel) => {
@@ -297,7 +297,7 @@ function App() {
 
 
   // Fetches pixel data from the smart contract and updates the state with the new data.
-  const fetchCanvasColors = async (startX = 0, startY = 0, accumulatedPixels = Array<{ x: number; y: number; color: string; owner: string; price: number }>()) => {
+  const fetchCanvasColors = async (startX = 0, startY = 0, accumulatedPixels = Array<{ x: number; y: number; color: string; owner: string; price: bigint }>()) => {
     // Exit if the defaultClient is not available
     if (!defaultClient) return;
 
@@ -327,7 +327,7 @@ function App() {
                 y: parseInt(y, 10),
                 color: `#${color}`, // Prepend '#' to the color value
                 owner,
-                price: parseFloat(price),
+                price: BigInt(price),
             };
         });
         
@@ -364,16 +364,16 @@ function App() {
     
     try {
       // Prepare arguments for the smart contract call
-      let args = new Args().addString(selectedPixels.length.toString());
+      let args = new Args().addI32(selectedPixels.length);
       selectedPixels.forEach(pixel => {
         // For each selected pixel, add its coordinates and price to the arguments
-        args.addU32(pixel.x).addU32(pixel.y).addString(pixel.price.toString());
+        args.addU32(pixel.x).addU32(pixel.y).addU64(pixel.price);
       });
     
       // Serialize arguments for transmission
       const serializedArgs = args.serialize();
       // Calculate the total price of all selected pixels
-      const totalPrice = selectedPixels.reduce((sum, { price }) => sum + price, 0);
+      const totalPrice = selectedPixels.reduce((sum, { price }) => sum + BigInt(price), BigInt(0));
     
       // Call the smart contract function to buy pixels
       await client.smartContracts().callSmartContract({
@@ -397,11 +397,11 @@ function App() {
     if (!client) return;
     try {
       // Initialize arguments with the number of pixels to modify
-      let args = new Args().addString(selectedPixels.length.toString());
+      let args = new Args().addI32(selectedPixels.length);
       
       // For each selected pixel, add its coordinates and new price to the arguments
       selectedPixels.forEach(pixel => {
-        args = args.addU32(pixel.x).addU32(pixel.y).addString(newPrice);
+        args = args.addU32(pixel.x).addU32(pixel.y).addU64(newPrice);
       });
 
       // Serialize arguments for transmission
@@ -429,7 +429,7 @@ function App() {
 
     try {
       // Initialize an Args object for constructing the smart contract call arguments
-      let args = new Args().addString(selectedPixels.length.toString());
+      let args = new Args().addI32(selectedPixels.length);
       // For each selected pixel, add its coordinates and the new color (excluding the hash symbol) to the arguments
       selectedPixels.forEach(pixel => {
           const colorWithoutHash = newColor.slice(1); // Remove the '#' from the color value
@@ -543,8 +543,8 @@ function App() {
           <button onClick={changeMultiplePixelsColor}>Apply New Color</button>
           <input
             type="number"
-            value={newPrice}
-            onChange={(e) => setNewPrice(e.target.value)}
+            value={newPrice.toString()}
+            onChange={(e) => setNewPrice(BigInt(e.target.value))}
             placeholder="New Price"
           />
           <button onClick={updateMultiplePixelsPrice}>Update Price for Selected Pixels</button>
