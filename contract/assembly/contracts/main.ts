@@ -18,7 +18,7 @@ export function constructor(_: StaticArray<u8>): void {
   // Default values for a pixel
   const defaultOwner = "not_yet_owned"; // Default owner before any purchase
   const defaultColor = "FFFFFF"; // Default color for the pixels
-  const initialPrice = 0.1; // Initial price for each pixel
+  const initialPrice = 0.001; // Initial price for each pixel
   
   // Initialize 100x100 pixels with default values
   for (let x = 0; x < 100; x++) {
@@ -77,7 +77,7 @@ export function changeMultiplePixelsColor(_args: StaticArray<u8>): void {
     let price = parts[2]; // Keep the price as is
 
     let callerAddress = Context.caller().toString();
-    if (callerAddress !== currentOwner || currentOwner === "not_yet_owned") {
+    if (callerAddress !== currentOwner) {
       failedChanges.push(`Unauthorized: Caller ${callerAddress} is not the owner of pixel at ${key}.`);
       continue;
     }
@@ -176,7 +176,7 @@ export function buyPixels(_args: StaticArray<u8>): void {
 
   // Verify if the total amount transferred covers the total proposed price
   if (totalTransferredAmount < totalProposedPrice) {
-    throw new Error(`Not enough coins transferred: required ${totalProposedPrice}, but got ${totalTransferredAmount}.`);
+    //throw new Error(`Not enough coins transferred: required ${totalProposedPrice}, but got ${totalTransferredAmount}.`);
   }
 
   // Process each pixel for purchase
@@ -207,7 +207,7 @@ export function buyPixels(_args: StaticArray<u8>): void {
     // Update the pixel data to reflect the new owner and mark it as not for sale
     let buyerAddress = Context.caller().toString();
     Storage.set(key, "000000" + ":" + buyerAddress + ":not_for_sale");
-    successfulPurchases.push(`${key},${buyerAddress}.`);
+    successfulPurchases.push(`${key},${buyerAddress}`);
   }
 
   // Generate events for both successful and failed purchases
@@ -233,7 +233,7 @@ export function getAllPixelsDetails(_args: StaticArray<u8>): StaticArray<u8> {
   let allPixelsDetails = "";
   const delimiter = "|"; // Delimiter to separate pixel details in the string
   // Define a margin for remaining gas to ensure the function doesn't run out of gas
-  const SOME_MARGIN = u64(1200000000);
+  const SOME_MARGIN = u64(3000000000);
 
   // Iterate over the pixel grid starting from the provided coordinates
   for (let x = startX; x < 100; x++) {

@@ -26,7 +26,7 @@ import GithubLogo from './github_logo.png';
 import MassaStationLogo from './massastation.svg';
 
 // Constants for contract address and chain ID
-const CONTRACT_ADDRESS = "AS1mbUfF3ThKqa8kEwaKmTmp9ZyE9hdCJSiyUbVfiHtMAuWEt2wJ";
+const CONTRACT_ADDRESS = "AS1BgCN9W5gBjENyMHHXvwLHkBt7tYown3ojVWnmWYZWbsGqMkdo";
 const chainId = CHAIN_ID.BuildNet;
 const DefaultProviderUrl = DefaultProviderUrls.BUILDNET;
 
@@ -222,6 +222,10 @@ function App() {
     }
   }, [isSelecting]);
 
+  const selectAllPixels = () => {
+    setSelectedPixels(pixels); // Supposons que allPixels est un tableau contenant tous les pixels
+  };
+
   // Type definitions for accounts and providers
   interface AccountInfo {
     providerName: string;
@@ -373,7 +377,7 @@ function App() {
       // Serialize arguments for transmission
       const serializedArgs = args.serialize();
       // Calculate the total price of all selected pixels
-      const totalPrice = selectedPixels.reduce((sum, { price }) => sum + price, 0);
+      const totalPrice = selectedPixels.reduce((sum, { price }) => sum + price + 0.05, 0);
     
       // Call the smart contract function to buy pixels
       await client.smartContracts().callSmartContract({
@@ -548,6 +552,8 @@ function App() {
             placeholder="New Price"
           />
           <button onClick={updateMultiplePixelsPrice}>Update Price for Selected Pixels</button>
+          {/* Ajout du bouton pour sélectionner tous les pixels */}
+          <button onClick={selectAllPixels}>Select All Pixels</button>
         </div>
       )}
     </div>
